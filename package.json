@@ -1,0 +1,43 @@
+{
+  "name": "jobscrapper",
+  "version": "1.0.0",
+  "description": "Job scrapper tool",
+  "main": "runner.js",
+  "bin": "runner.js",
+  "type": "module",
+  "scripts": {
+    "start": "node runner.js",
+    "build": "pkg . --out-path dist"
+  },
+  "pkg": {
+    "scripts": [
+      "runner.js",
+      "src/**/*.js"
+    ],
+    "assets": [
+      ".env"
+    ],
+    "targets": [
+      "node18-win-x64",
+      "node18-linux-x64",
+      "node18-macos-x64"
+    ]
+  },
+  "dependencies": {
+    "@azure/cosmos": "^4.5.0",
+    "@azure/storage-blob": "^12.28.0",
+    "@google/genai": "^1.15.0",
+    "better-sqlite3": "^12.2.0",
+    "dotenv": "^17.2.1",
+    "node-fetch": "^3.3.2",
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.4.54",
+    "pdfreader": "^3.0.7",
+    "puppeteer": "^24.17.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  }
+}
