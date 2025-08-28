@@ -5,4 +5,3 @@ JobScraper.exe
 runScrapper.bat
 jobs.db
 *.log
-src/assets/

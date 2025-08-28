@@ -65,7 +65,7 @@ export async function scrapeJobs() {
       });
     });
 
-    jobs = jobs.slice(0, 2);
+    jobs = jobs.slice(0, 10);
     console.log(`Top ${jobs.length} jobs from ${url}:`, jobs);
 
     for (let job of jobs) {
