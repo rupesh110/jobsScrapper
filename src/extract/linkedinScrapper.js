@@ -1,21 +1,21 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { hasVisited, markVisited, getAllJobs } from '../data/index.js';
-import dotenv from 'dotenv';
 import fs from 'fs';
+import dotenv from 'dotenv';
+import path from 'path';
 dotenv.config();
 
 puppeteer.use(StealthPlugin());
 
-const LINKEDIN_EMAIL = process.env.LINKEDIN_EMAIL;
-const LINKEDIN_PASSWORD = process.env.LINKEDIN_PASSWORD;
-const COOKIE_PATH = './linkedin_cookies.json';
+const COOKIE_PATH = path.resolve('./src/extract/linkedin-cookies.json');
 
 const userAgents = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:119.0) Gecko/20100101 Firefox/119.0',
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15'
 ];
+
 const randomUserAgent = () => userAgents[Math.floor(Math.random() * userAgents.length)];
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
@@ -41,8 +41,13 @@ export async function scrapeLinkedInJobs(headless = true) {
   const allJobs = await getAllJobs();
   console.log(`Loaded ${allJobs.length} jobs into local DB from Cosmos`);
 
+  if (!fs.existsSync(COOKIE_PATH)) {
+    console.error('Cookies file not found! Please upload linkedin-cookies.json.');
+    return [];
+  }
+
   const browser = await puppeteer.launch({
-    headless, // true for VM / cloud, false for local debug
+    headless: false,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -56,49 +61,22 @@ export async function scrapeLinkedInJobs(headless = true) {
   await page.setViewport({ width: 1280, height: 800 });
   await page.setUserAgent(randomUserAgent());
 
-  console.log("Opening LinkedIn...");
+  // Load cookies
+  const cookies = JSON.parse(fs.readFileSync(COOKIE_PATH, 'utf-8'));
+  await page.setCookie(...cookies);
+  console.log('Loaded LinkedIn cookies.');
 
-  // Load cookies if they exist
-  if (fs.existsSync(COOKIE_PATH)) {
-    const cookies = JSON.parse(fs.readFileSync(COOKIE_PATH, 'utf-8'));
-    await page.setCookie(...cookies);
-    console.log('Loaded LinkedIn cookies, skipping login.');
-    await safeGoto(page, 'https://www.linkedin.com/feed/');
-    await page.waitForTimeout(3000); // wait a bit for page to load
-  } else {
-    await safeGoto(page, 'https://www.linkedin.com/login');
+  await safeGoto(page, 'https://www.linkedin.com/feed/');
+  await delay(60000);
 
-    // Handle pre-login popups
-    const popupSelectors = ['button[aria-label="Dismiss"]', 'button[aria-label="Close"]', 'button.artdeco-dismiss'];
-    for (const sel of popupSelectors) {
-      const btn = await page.$(sel);
-      if (btn) {
-        console.log(`Closing popup: ${sel}`);
-        await btn.click();
-        await delay(1000);
-        break;
-      }
-    }
-
-    // Type credentials
-    await page.type('#username', LINKEDIN_EMAIL, { delay: 100 });
-    await page.type('#password', LINKEDIN_PASSWORD, { delay: 100 });
-    await page.click('button[type="submit"]');
-
-    try {
-      await page.waitForSelector('input[placeholder="Search"]', { timeout: 120000 });
-      console.log("Logged in successfully!");
-
-      // Save cookies for future runs
-      const cookies = await page.cookies();
-      fs.writeFileSync(COOKIE_PATH, JSON.stringify(cookies, null, 2));
-      console.log("Saved LinkedIn cookies for future runs.");
-    } catch (err) {
-      console.error("Login may have failed or took too long. Exiting scraper.");
-      await browser.close();
-      return [];
-    }
+  // Check if cookies are valid
+  if (page.url().includes('/login')) {
+    console.warn('Cookies are expired or invalid. Please upload fresh cookies.');
+    await browser.close();
+    return [];
   }
+
+  console.log('Successfully logged in via cookies.');
 
   // --- LinkedIn job search URLs ---
   const urls = [

@@ -12,12 +12,12 @@ export async function main() {
     const seekJobs = await scrapeSeekJobs();
     console.log(`Found ${seekJobs.length} new Seek jobs`);
 
-    // 2️⃣ Scrape jobs from LinkedIn
-    const linkedInJobs = await scrapeLinkedInJobs();
-    console.log(`Found ${linkedInJobs.length} new LinkedIn jobs`);
+    // // 2️⃣ Scrape jobs from LinkedIn
+    // const linkedInJobs = await scrapeLinkedInJobs();
+    // console.log(`Found ${linkedInJobs.length} new LinkedIn jobs`);
 
     // Combine all jobs
-    const allJobs = [...seekJobs, ...linkedInJobs];
+    const allJobs = [...seekJobs]//, ...linkedInJobs];
     if (!allJobs.length) {
       console.log("No new jobs to process.");
       return;
