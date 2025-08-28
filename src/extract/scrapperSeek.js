@@ -16,10 +16,15 @@ export async function scrapeJobs() {
   console.log(`Loaded ${allJobs.length} jobs into local DB from Cosmos`);
 
   const browser = await puppeteer.launch({
-    headless: false, // set true for production, false for debugging
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    headless: "new", // <-- run headless on cloud VM
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--disable-software-rasterizer"
+    ]
   });
-
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 800 });
 
@@ -43,7 +48,7 @@ export async function scrapeJobs() {
     let retries = 3;
     while (retries > 0) {
       try {
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
         break;
       } catch (err) {
         console.warn(`Failed to load ${url}, retries left: ${retries - 1}`);
