@@ -25,7 +25,7 @@ export async function main() {
     console.log(`Found ${linkedInJobs.length} new LinkedIn jobs`);
 
     // Combine all jobs
-    const allJobs = [...seekJobs]//, ...linkedInJobs];
+    const allJobs = [...seekJobs,  ...linkedInJobs];
 
      //const allJobs = [...linkedInJobs];
     if (!allJobs.length) {

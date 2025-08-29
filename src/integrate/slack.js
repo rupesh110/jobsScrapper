@@ -72,7 +72,6 @@ export async function sendSlackMessageIfGood(aiResult, message) {
 
 
 export async function sendSlackMessageVmRunning(message) {
-
   try {
     let text = typeof message === "string" ? message : JSON.stringify(message, null, 2);
 
