@@ -20,6 +20,7 @@ const randomUserAgent = () => userAgents[Math.floor(Math.random() * userAgents.l
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
 async function safeGoto(page, url, retries = 3) {
+  if (!url) throw new Error('Cannot navigate to empty URL');
   while (retries > 0) {
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -47,13 +48,16 @@ export async function scrapeLinkedInJobs(headless = true) {
   }
 
   const browser = await puppeteer.launch({
-    headless: false,
+    headless,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-gpu',
-      '--disable-software-rasterizer'
+      '--disable-software-rasterizer',
+      '--single-process',             
+      '--disable-background-networking',
+      '--disable-renderer-backgrounding'
     ]
   });
 
@@ -67,9 +71,8 @@ export async function scrapeLinkedInJobs(headless = true) {
   console.log('Loaded LinkedIn cookies.');
 
   await safeGoto(page, 'https://www.linkedin.com/feed/');
-  await delay(60000);
+  await delay(3000);
 
-  // Check if cookies are valid
   if (page.url().includes('/login')) {
     console.warn('Cookies are expired or invalid. Please upload fresh cookies.');
     await browser.close();
@@ -78,7 +81,6 @@ export async function scrapeLinkedInJobs(headless = true) {
 
   console.log('Successfully logged in via cookies.');
 
-  // --- LinkedIn job search URLs ---
   const urls = [
     'https://www.linkedin.com/jobs/search/?keywords=software%20engineer&f_TPR=r3600',
   ];
@@ -95,32 +97,33 @@ export async function scrapeLinkedInJobs(headless = true) {
 
     const jobs = await page.evaluate(() => {
       const cards = document.querySelectorAll('li[data-occludable-job-id]');
-      return Array.from(cards).slice(0, 10).map(card => {
+      return Array.from(cards).slice(0, 20).map(card => {
         const linkEl = card.querySelector('a.job-card-container__link');
         const companyEl = card.querySelector('div.artdeco-entity-lockup__subtitle span');
         return {
           title: linkEl?.innerText.trim() || 'No title',
           company: companyEl?.innerText.trim() || 'No company',
-          url: linkEl ? linkEl.href : ''
+          url: linkEl?.href || ''
         };
       });
     });
 
     for (let job of jobs) {
+      console.log(job)
       const cleanUrl = normalizeUrl(job.url);
+      if (!cleanUrl) {
+        console.warn(`Skipping job "${job.title}" because URL is invalid or empty.`);
+        continue;
+      }
       if (hasVisited(cleanUrl) || seenUrls.has(cleanUrl)) continue;
       seenUrls.add(cleanUrl);
 
       try {
-        const jobPage = await browser.newPage();
-        await jobPage.setUserAgent(randomUserAgent());
-        await delay(1000 + Math.random() * 2000);
-        await safeGoto(jobPage, job.url);
-
-        await jobPage.evaluate(() => window.scrollBy(0, document.body.scrollHeight / 2));
+        await safeGoto(page, cleanUrl);
+        await page.evaluate(() => window.scrollBy(0, document.body.scrollHeight / 2));
         await delay(1000 + Math.random() * 2000);
 
-        job.description = await jobPage.evaluate(() => {
+        job.description = await page.evaluate(() => {
           const descEl = document.querySelector('.jobs-description__container');
           return descEl ? descEl.innerText.trim() : 'No description available';
         });
@@ -129,9 +132,8 @@ export async function scrapeLinkedInJobs(headless = true) {
         newJobs.push({ ...job, url: cleanUrl });
 
         console.log(`Fetched job: ${job.title} at ${job.company}`);
-        await jobPage.close();
       } catch (err) {
-        console.warn(`Failed to fetch ${job.url}:`, err.message);
+        console.warn(`Failed to fetch ${job.title} at ${job.company}:`, err.message);
         job.description = 'Failed to load description';
       }
     }

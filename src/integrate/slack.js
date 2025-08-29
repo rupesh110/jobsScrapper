@@ -69,3 +69,26 @@ export async function sendSlackMessageIfGood(aiResult, message) {
     console.error("Error sending Slack message:", err.message);
   }
 }
+
+
+export async function sendSlackMessageVmRunning(message) {
+
+  try {
+    let text = typeof message === "string" ? message : JSON.stringify(message, null, 2);
+
+    const payload = { text };
+    const res = await fetch(SLACK_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Slack API error: ${res.status} ${res.statusText}`);
+    }
+
+    console.log("Message sent to Slack successfully.");
+  } catch (err) {
+    console.error("Error sending Slack message:", err.message);
+  }
+}

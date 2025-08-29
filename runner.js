@@ -1,14 +1,19 @@
 import { main } from "./src/scripts/main.js";
 
-const INTERVAL_MS = 30 * 60 * 1000; // every 30 minutes
 const START_HOUR = 7;  // 7 AM Sydney time
-const END_HOUR = 17;   // 5 PM Sydney time
+const END_HOUR = 18;   // 6 PM Sydney time
+
+function getRandomInterval() {
+    const minMinutes = 25;
+    const maxMinutes = 35;
+    const minutes = Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) + minMinutes;
+    return minutes * 60 * 1000; // convert to milliseconds
+}
 
 async function runRepeatedly() {
-    console.log(`Starting job/resume analysis every ${INTERVAL_MS / 60000} minutes, only between ${START_HOUR}:00 and ${END_HOUR}:00 Sydney time.`);
+    console.log(`Starting job/resume analysis with random intervals between 25-35 minutes, only between ${START_HOUR}:00 and ${END_HOUR}:00 Sydney time.`);
 
     while (true) {
-        // Get current Sydney hour directly
         const now = new Date();
         const currentHour = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', hour: 'numeric', hour12: false }).format(now);
         const currentHourNum = Number(currentHour);
@@ -27,7 +32,9 @@ async function runRepeatedly() {
             console.log(`\n--- Outside working hours (${currentTime} Sydney) — skipping run ---`);
         }
 
-        await new Promise(res => setTimeout(res, INTERVAL_MS));
+        const randomInterval = getRandomInterval();
+        console.log(`Next run in ${(randomInterval / 60000).toFixed(2)} minutes.`);
+        await new Promise(res => setTimeout(res, randomInterval));
     }
 }
 

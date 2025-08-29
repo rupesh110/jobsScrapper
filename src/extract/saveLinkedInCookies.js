@@ -6,28 +6,45 @@ dotenv.config();
 
 puppeteer.use(StealthPlugin());
 
-const LINKEDIN_EMAIL = process.env.LINKEDIN_EMAIL || "rupeshshresthatech@gmail.com";
-const LINKEDIN_PASSWORD = process.env.LINKEDIN_PASSWORD || "Bankstown@110"; 
-(async () => {
-  const browser = await puppeteer.launch({ headless: false });
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1280, height: 800 });
+const LINKEDIN_EMAIL = process.env.LINKEDIN_EMAIL ||"rupeshshresthatech@gmail.com" ;
+const LINKEDIN_PASSWORD = process.env.LINKEDIN_PASSWORD ||"Bankstown@110"; 
+const COOKIE_PATH = './linkedin-cookies.json';
 
-  console.log("Opening LinkedIn login...");
+(async () => {
+const browser = await puppeteer.launch({
+  headless: false,
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--no-zygote',
+    '--single-process', // maybe needed for small VMs
+    '--disable-gpu'
+  ]
+});
+
+  const page = await browser.newPage();
+
+  console.log("Open LinkedIn login...");
   await page.goto('https://www.linkedin.com/login', { waitUntil: 'domcontentloaded' });
 
-  await page.type('#username', LINKEDIN_EMAIL, { delay: 100 });
-  await page.type('#password', LINKEDIN_PASSWORD, { delay: 100 });
-  await page.click('button[type="submit"]');
+  // Only fill if first time
+  if (!fs.existsSync(COOKIE_PATH)) {
+    await page.type('#username', LINKEDIN_EMAIL, { delay: 100 });
+    await page.type('#password', LINKEDIN_PASSWORD, { delay: 100 });
+    await page.click('button[type="submit"]');
+  }
 
-  // Wait until login completes
-  await page.waitForSelector('input[placeholder="Search"]', { timeout: 120000 });
-  console.log('Logged in successfully!');
+  // Wait for manual puzzle completion
+  console.log('Solve any puzzle manually if prompted...');
+  await page.waitForSelector('#global-nav', { timeout: 0 }); // wait until fully logged in
 
-  // Save cookies
+  // Save cookies after login
   const cookies = await page.cookies();
-  await fs.promises.writeFile('linkedin-cookies.json', JSON.stringify(cookies, null, 2));
-  console.log('Cookies saved!');
+  await fs.promises.writeFile(COOKIE_PATH, JSON.stringify(cookies, null, 2));
+  console.log('Cookies saved successfully!');
 
   await browser.close();
 })();
