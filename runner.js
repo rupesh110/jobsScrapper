@@ -1,7 +1,7 @@
 import { main } from "./src/scripts/main.js";
 
 const START_HOUR = 7;  // 7 AM Sydney time
-const END_HOUR = 18;   // 6 PM Sydney time
+const END_HOUR = 6;   // 6 PM Sydney time
 
 function getRandomInterval() {
     const minMinutes = 25;
