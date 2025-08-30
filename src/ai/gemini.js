@@ -2,7 +2,7 @@ import fetch from "node-fetch";
 import dotenv from 'dotenv';
 dotenv.config();
 
-const aiKey = process.env.GEMINI_KEY; // Replace with your Gemini API key
+const aiKey = process.env.GEMINI_KEY; // Your Gemini API key
 
 /**
  * Compare a single job with resume using Gemini
@@ -18,29 +18,41 @@ export async function compareJobWithResume(job, resumeText) {
     : resumeText;
 
   const prompt = `
-You are a career assistant AI.
+You are a career assistant AI. Compare a candidate's resume with a job description.
 
 Candidate resume:
 ${trimmedResume}
 
-Job opening:
+Job:
 ${job.title} at ${job.company}
 
 Job description:
 ${job.description}
 
-Compare the candidate's resume with this job description. STRICTLY RETURN a JSON object with all fields included even if some values are 0 or "low".
+STRICT RULES:
+1. Output ONLY a JSON object with exactly these fields: 
+   - suitable (true/false)
+   - resumeImprovements (array of strings, empty if none)
+   - matchPercent (number 0-100)
+   - chanceCategory ("low", "medium", "high")
+   - summary (string, can be "No summary available")
+2. Always include all fields, even if some values are 0, false, empty, or "low".
+3. Do NOT include any text outside JSON, do NOT include markdown.
+4. Use the resume and job description to calculate matchPercent, suggest improvements, and categorize chanceCategory.
+5. If resume lacks relevant skills or experience, set suitable to false, matchPercent to 0-30, and chanceCategory to "low".
+6. If resume partially matches the job, set matchPercent 31-69, chanceCategory "medium".
+7. If resume closely matches the job, set matchPercent 70-100, chanceCategory "high".
 
 Example output:
 {
   "suitable": true,
-  "resumeImprovements": ["Highlight Python experience", "Include project metrics"],
+  "resumeImprovements": ["Highlight JavaScript experience", "Include project metrics"],
   "matchPercent": 85,
   "chanceCategory": "high",
   "summary": "Candidate skills match the job well, with minor improvements suggested."
 }
 
-Analyze this job and resume now. Do not include any text outside the JSON object. Do not wrap JSON in markdown.
+Analyze the resume against the job now.
 `;
 
   try {
@@ -62,7 +74,7 @@ Analyze this job and resume now. Do not include any text outside the JSON object
     let aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     console.log("From Gemini:", aiText);
 
-    // Clean code fences if present
+    // Clean any code fences if present
     aiText = aiText.replace(/^```json\s*/, "").replace(/```$/, "").trim();
 
     try {

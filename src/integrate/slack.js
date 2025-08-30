@@ -42,7 +42,7 @@ ${(aiResult.resumeImprovements || []).map(imp => `• ${escapeSlack(imp)}`).join
 
 // Send Slack message only if matchPercent >= 50%
 export async function sendSlackMessageIfGood(aiResult, message) {
-  if ((aiResult.matchPercent ?? 0) < 50) {
+  if ((aiResult.matchPercent ?? 0) < 40) {
     console.log(`Skipping Slack message: matchPercent < 50% (${aiResult.matchPercent})`);
     return;
   }

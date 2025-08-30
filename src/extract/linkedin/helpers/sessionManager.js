@@ -1,5 +1,6 @@
+// sessionManager.js
 import fs from 'fs';
-import { loginLinkedIn } from "../saveLinkedInProfile.js";
+import { loginLinkedIn } from '../saveLinkedInProfile.js';
 
 const COOKIE_PATH = './src/extract/linkedin/linkedin-cookies.json';
 

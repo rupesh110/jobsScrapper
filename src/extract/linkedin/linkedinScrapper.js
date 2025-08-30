@@ -86,8 +86,11 @@ export async function scrapeLinkedInJobs() {
       });
 
       markVisited({ ...job, url: cleanUrl });
-      enqueueJob({ ...job, url: cleanUrl }); // enqueue directly like Seek
-      console.log(`Queued job: ${job.title} at ${job.company}`);
+      enqueueJob({ ...job, url: cleanUrl, description: job.description }); // enqueue directly like Seek
+
+      // console.log("-------------------------------------------------------------------------------------------");
+      // console.log(`Queued job from linkedin: ${job.title} at ${job.company}, ${job.description}`);
+      // console.log("-------------------------------------------------------------------------------------------");
     }
   }
 

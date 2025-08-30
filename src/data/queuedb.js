@@ -22,10 +22,16 @@ db.prepare(`
 export function enqueueJob(job) {
   const normalized = normalizeUrl(job.url);
   db.prepare(`
-    INSERT OR IGNORE INTO job_queue (url, title, company)
-    VALUES (?, ?, ?)
-  `).run(normalized, job.title, job.company);
+    INSERT OR IGNORE INTO job_queue (url, title, company, description)
+    VALUES (?, ?, ?, ?)
+  `).run(
+    normalized,
+    job.title,
+    job.company,
+    job.description || 'No description available' // add description
+  );
 }
+
 
 // Fetch the next pending job from the queue
 export function getPendingJob() {
