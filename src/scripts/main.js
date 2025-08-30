@@ -13,9 +13,12 @@ export async function main() {
     console.log('Seek scraping done.');
 
     // 2️⃣ Scrape LinkedIn jobs
-    console.log('Scraping LinkedIn jobs...');
-    await scrapeLinkedInJobs();
-    console.log('LinkedIn scraping done.');
+      try {
+        await scrapeLinkedInJobs();
+      } catch (err) {
+        console.error("LinkedIn scraping failed, continuing with queue processing...", err);
+      }
+
 
     // 3️⃣ Process queued jobs (AI + Slack)
     console.log('Processing queued jobs...');
