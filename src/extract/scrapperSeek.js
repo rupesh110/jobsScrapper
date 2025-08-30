@@ -1,6 +1,8 @@
+// src/extract/scrapperSeek.js
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { hasVisited, markVisited, getAllJobs } from '../data/index.js';
+import { enqueueJob, getPendingJob } from '../data/queuedb.js';
 
 puppeteer.use(StealthPlugin());
 
@@ -8,7 +10,6 @@ function normalizeUrl(url) {
   return url ? url.split('#')[0].split('?')[0] : '';
 }
 
-// Helper sleep function
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function scrapeJobs() {
@@ -16,7 +17,7 @@ export async function scrapeJobs() {
   console.log(`Loaded ${allJobs.length} jobs into local DB from Cosmos`);
 
   const browser = await puppeteer.launch({
-    headless: "new", // <-- run headless on cloud VM
+    headless: "new",
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
@@ -25,6 +26,7 @@ export async function scrapeJobs() {
       "--disable-software-rasterizer"
     ]
   });
+
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 800 });
 
@@ -36,11 +38,9 @@ export async function scrapeJobs() {
   await page.setUserAgent(userAgents[Math.floor(Math.random() * userAgents.length)]);
 
   const urls = [
-    'https://www.seek.com.au/software-developer-jobs?daterange=1'
+    'https://www.seek.com.au/software-developer-jobs?daterange=1',
+    'https://www.seek.com.au/software-developer-jobs'
   ];
-
-  const newJobs = [];
-  const seenUrls = new Set();
 
   for (const url of urls) {
     console.log("Opening:", url);
@@ -71,46 +71,21 @@ export async function scrapeJobs() {
     });
 
     jobs = jobs.slice(0, 20);
-    console.log(`Top ${jobs.length} jobs from ${url}:`, jobs);
+    console.log(`Top ${jobs.length} jobs from ${url}`);
 
     for (let job of jobs) {
       const cleanUrl = normalizeUrl(job.url);
 
-      if (hasVisited(cleanUrl) || seenUrls.has(cleanUrl)) {
+      if (hasVisited(cleanUrl)) {
         console.log(`Skipping already visited job: ${job.title}`);
         continue;
       }
-      seenUrls.add(cleanUrl);
 
-      try {
-        const jobPage = await browser.newPage();
-        await jobPage.setUserAgent(userAgents[Math.floor(Math.random() * userAgents.length)]);
-        await jobPage.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        await jobPage.evaluate(() => window.scrollBy(0, window.innerHeight / 2));
-        await sleep(1000 + Math.random() * 2000);
-
-        job.description = await jobPage.evaluate(() => {
-          const descEl = document.querySelector('[data-automation="jobAdDetails"]');
-          return descEl ? descEl.innerText.trim() : 'No description available';
-        });
-
-        markVisited({ ...job, url: cleanUrl });
-        newJobs.push({ ...job, url: cleanUrl });
-
-        console.log(`Fetched description for: ${job.title}`);
-        await jobPage.close();
-      } catch (err) {
-        console.warn(`Failed to fetch ${job.url}:`, err.message);
-        job.description = 'Failed to load description';
-      }
+      markVisited({ ...job, url: cleanUrl });
+      enqueueJob({ ...job, url: cleanUrl }); // add to queue instead of processing description
+      console.log(await getPendingJob())
+      console.log(`Queued job: ${job.title} at ${job.company}`);
     }
   }
-
   await browser.close();
-  return newJobs;
 }
-
-// (async () => {
-//   const jobs = await scrapeJobs();
-//   console.log("Total new jobs scraped:", jobs.length);
-// })();
