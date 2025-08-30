@@ -73,7 +73,7 @@ async function processBatch(batch, resumeText) {
 
             markJobDone(job.id, job.description || 'No description available');
 
-            console.log(`Completed job: ${job.title} at ${job.company} and ${job.description}`);
+            //console.log(`Completed job: ${job.title} at ${job.company} and ${job.description}`);
 
             // Throttle AI calls to avoid rate-limit issues
             await sleep(THROTTLE_MS + Math.random() * 1000);
