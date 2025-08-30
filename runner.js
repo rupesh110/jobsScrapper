@@ -1,7 +1,7 @@
 import { main } from "./src/scripts/main.js";
 
 const START_HOUR = 7;  // 7 AM Sydney time
-const END_HOUR = 6;   // 6 PM Sydney time
+const END_HOUR = 18;   // 6 PM Sydney time
 
 function getRandomInterval() {
     const minMinutes = 25;
@@ -20,17 +20,24 @@ async function runRepeatedly() {
 
         const currentTime = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(now);
 
-        if (currentHourNum >= START_HOUR && currentHourNum < END_HOUR) {
-            console.log(`\n--- Running analysis at ${currentTime} Sydney ---`);
-            try {
+        // if (currentHourNum >= START_HOUR && currentHourNum < END_HOUR) {
+        //     console.log(`\n--- Running analysis at ${currentTime} Sydney ---`);
+        //     try {
+        //         await main();
+        //         console.log("Run completed successfully.");
+        //     } catch (err) {
+        //         console.error("Run failed:", err);
+        //     }
+        // } else {
+        //     console.log(`\n--- Outside working hours (${currentTime} Sydney) — skipping run ---`);
+        // }
+
+                 try {
                 await main();
                 console.log("Run completed successfully.");
             } catch (err) {
                 console.error("Run failed:", err);
             }
-        } else {
-            console.log(`\n--- Outside working hours (${currentTime} Sydney) — skipping run ---`);
-        }
 
         const randomInterval = getRandomInterval();
         console.log(`Next run in ${(randomInterval / 60000).toFixed(2)} minutes.`);
