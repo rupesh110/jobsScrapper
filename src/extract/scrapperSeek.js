@@ -2,7 +2,7 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { hasVisited, markVisited, getAllJobs } from '../data/index.js';
-import { enqueueJob, getPendingJob } from '../data/queuedb.js';
+import { enqueueJob } from '../data/queuedb.js';
 
 puppeteer.use(StealthPlugin());
 
@@ -18,13 +18,7 @@ export async function scrapeJobs() {
 
   const browser = await puppeteer.launch({
     headless: "new",
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-      "--disable-software-rasterizer"
-    ]
+    args: ["--no-sandbox", "--disable-setuid-sandbox"]
   });
 
   const page = await browser.newPage();
@@ -57,6 +51,7 @@ export async function scrapeJobs() {
       }
     }
 
+    // Scroll a bit to load more jobs
     await page.evaluate(() => window.scrollBy(0, window.innerHeight));
     await sleep(1500);
 
@@ -75,17 +70,46 @@ export async function scrapeJobs() {
 
     for (let job of jobs) {
       const cleanUrl = normalizeUrl(job.url);
-
-      if (hasVisited(cleanUrl)) {
-        console.log(`Skipping already visited job: ${job.title}`);
-        continue;
-      }
+      if (!cleanUrl || hasVisited(cleanUrl)) continue;
 
       markVisited({ ...job, url: cleanUrl });
-      enqueueJob({ ...job, url: cleanUrl }); // add to queue instead of processing description
-      console.log(await getPendingJob())
-      console.log(`Queued job: ${job.title} at ${job.company}`);
+
+      try {
+        await page.goto(cleanUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+        // Wait explicitly for job description container
+        try {
+          await page.waitForSelector(
+            'div[data-automation="jobAdDetails"], .job-description, div[data-automation="jobAd"]',
+            { timeout: 15000 }
+          );
+        } catch {
+          console.warn(`Description container not found for ${job.title}`);
+        }
+
+        const description = await page.evaluate(() => {
+          const el = document.querySelector('div[data-automation="jobAdDetails"]') ||
+                     document.querySelector('.job-description') ||
+                     document.querySelector('div[data-automation="jobAd"]');
+          return el ? el.innerText.trim() : 'No description available';
+        });
+
+        job.description = description;
+        enqueueJob({ ...job, url: cleanUrl, description });
+        // console.log("-------------------------------------------------------------------------------------------");
+        // console.log(`Queued job from seek: ${job.title} at ${job.company}, ${description}`);
+        // console.log("-------------------------------------------------------------------------------------------");
+
+      } catch (err) {
+        console.warn(`Failed to fetch description for ${job.title}: ${err.message}`);
+        enqueueJob({ ...job, url: cleanUrl, description: 'No description available' });
+      }
+
+      // Random delay to simulate human behavior
+      await sleep(1000 + Math.random() * 1500);
     }
   }
+
   await browser.close();
+  console.log('Seek scraping complete.');
 }
