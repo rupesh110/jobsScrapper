@@ -16,7 +16,7 @@ export async function scrapeLinkedInJobs() {
   console.log(`Loaded ${allJobs.length} jobs into local DB from Cosmos.`);
 
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: false,
     userDataDir: './src/extract/linkedin/linkedin-profile',
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
