@@ -30,7 +30,7 @@ if (!LINKEDIN_EMAIL || !LINKEDIN_PASSWORD) {
 // ---------------- LinkedIn Login ----------------
 export async function loginLinkedIn(headless = false) {
   const browser = await puppeteer.launch({
-    headless,
+    headless:false,
     userDataDir: USER_PROFILE_PATH,
     args: [
       '--no-sandbox',

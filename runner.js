@@ -20,17 +20,24 @@ async function runRepeatedly() {
 
         const currentTime = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(now);
 
-        if (currentHourNum >= START_HOUR && currentHourNum < END_HOUR) {
-            console.log(`\n--- Running analysis at ${currentTime} Sydney ---`);
-            try {
+        // if (currentHourNum >= START_HOUR && currentHourNum < END_HOUR) {
+        //     console.log(`\n--- Running analysis at ${currentTime} Sydney ---`);
+        //     try {
+        //         await main();
+        //         console.log("Run completed successfully.");
+        //     } catch (err) {
+        //         console.error("Run failed:", err);
+        //     }
+        // } else {
+        //     console.log(`\n--- Outside working hours (${currentTime} Sydney) — skipping run ---`);
+        // }
+
+          try {
                 await main();
                 console.log("Run completed successfully.");
             } catch (err) {
                 console.error("Run failed:", err);
             }
-        } else {
-            console.log(`\n--- Outside working hours (${currentTime} Sydney) — skipping run ---`);
-        }
 
         const randomInterval = getRandomInterval();
         console.log(`Next run in ${(randomInterval / 60000).toFixed(2)} minutes.`);
