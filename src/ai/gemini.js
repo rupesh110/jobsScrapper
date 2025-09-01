@@ -2,23 +2,23 @@ import fetch from "node-fetch";
 import dotenv from 'dotenv';
 dotenv.config();
 
-const aiKey = process.env.GEMINI_KEY; // Your Gemini API key
+const aiKey = process.env.GEMINI_KEY;
 
 /**
- * Compare a single job with resume using Gemini
- * @param {Object} job - Job object {title, company, description}
- * @param {string} resumeText - Full text of the candidate's resume
- * @returns {Promise<Object>} - JSON object with suitability, improvements, matchPercent, chanceCategory, summary
+ * Compare a single job with a resume using Gemini
+ * @param {Object} job - {title, company, description}
+ * @param {string} resumeText - Full resume text
+ * @returns {Promise<Object>} - {suitable, resumeImprovements, matchPercent, chanceCategory, summary}
  */
 export async function compareJobWithResume(job, resumeText) {
-  // Trim resume if too long to avoid empty responses
-  const maxResumeLength = 2000; // characters
+  // Trim resume if too long
+  const maxResumeLength = 3000;
   const trimmedResume = resumeText.length > maxResumeLength 
     ? resumeText.slice(0, maxResumeLength) + '...'
     : resumeText;
 
   const prompt = `
-You are a career assistant AI. Compare a candidate's resume with a job description.
+You are an expert career assistant AI. Compare a candidate's resume with a job description.
 
 Candidate resume:
 ${trimmedResume}
@@ -29,27 +29,26 @@ ${job.title} at ${job.company}
 Job description:
 ${job.description}
 
-STRICT RULES:
-1. Output ONLY a JSON object with exactly these fields: 
-   - suitable (true/false)
-   - resumeImprovements (array of strings, empty if none)
-   - matchPercent (number 0-100)
-   - chanceCategory ("low", "medium", "high")
-   - summary (string, can be "No summary available")
-2. Always include all fields, even if some values are 0, false, empty, or "low".
-3. Do NOT include any text outside JSON, do NOT include markdown.
-4. Use the resume and job description to calculate matchPercent, suggest improvements, and categorize chanceCategory.
-5. If resume lacks relevant skills or experience, set suitable to false, matchPercent to 0-30, and chanceCategory to "low".
-6. If resume partially matches the job, set matchPercent 31-69, chanceCategory "medium".
-7. If resume closely matches the job, set matchPercent 70-100, chanceCategory "high".
+STRICT JSON OUTPUT:
+- Output ONLY a JSON object with fields: suitable, resumeImprovements, matchPercent, chanceCategory, summary
+- Always include all fields, even if empty or false
+- Do NOT include any text outside JSON
+
+GUIDANCE:
+1. Consider **transferable skills, learning potential, adaptability, and relevant achievements**, not just exact keyword matches.
+2. Graduate or entry-level roles should value **curiosity, growth mindset, and foundational skills**.
+3. Intermediate/experienced roles should value **specific technical skills and accomplishments**.
+4. matchPercent: 0-30 = low, 31-69 = medium, 70-100 = high.
+5. Adjust chanceCategory according to overall alignment, including transferable skills.
+6. If resume partially matches, suggest improvements in resumeImprovements.
 
 Example output:
 {
   "suitable": true,
   "resumeImprovements": ["Highlight JavaScript experience", "Include project metrics"],
-  "matchPercent": 85,
+  "matchPercent": 75,
   "chanceCategory": "high",
-  "summary": "Candidate skills match the job well, with minor improvements suggested."
+  "summary": "Candidate skills are relevant and transferable, with minor improvements suggested."
 }
 
 Analyze the resume against the job now.
@@ -72,14 +71,12 @@ Analyze the resume against the job now.
 
     const data = await response.json();
     let aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-    console.log("From Gemini:", aiText);
 
-    // Clean any code fences if present
+    // Clean code fences if present
     aiText = aiText.replace(/^```json\s*/, "").replace(/```$/, "").trim();
 
     try {
       const result = JSON.parse(aiText);
-      // Ensure all fields exist with defaults
       return {
         suitable: result.suitable ?? false,
         resumeImprovements: result.resumeImprovements ?? [],
