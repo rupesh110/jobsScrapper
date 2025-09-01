@@ -11,6 +11,12 @@ const aiKey = process.env.GEMINI_KEY;
  * @returns {Promise<Object>} - {suitable, resumeImprovements, matchPercent, chanceCategory, summary}
  */
 export async function compareJobWithResume(job, resumeText) {
+
+
+  // console.log("------------------------------------------")
+  // console.log("Props:", job, "--------------------", resumeText)
+  // console.log("------------------------------------------")
+
   // Trim resume if too long
   const maxResumeLength = 3000;
   const trimmedResume = resumeText.length > maxResumeLength 
@@ -71,6 +77,7 @@ Analyze the resume against the job now.
 
     const data = await response.json();
     let aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    //console.log("From Gemini:", JSON.stringify(data, null, 2));
 
     // Clean code fences if present
     aiText = aiText.replace(/^```json\s*/, "").replace(/```$/, "").trim();

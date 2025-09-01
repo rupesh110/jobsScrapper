@@ -5,7 +5,7 @@ import {
   markJobFailed, 
   isSlackSent, 
   markSlackSent 
-} from '../data/jobQueue.js';
+} from '../data/queuedb.js';
 import { extractPdfTextFromBlob } from '../assets/resume.js';
 import { compareJobWithResume } from '../ai/gemini.js';
 import { formatJobMessage, sendSlackMessageIfGood, sendSlackMessageVmRunning } from '../integrate/slack.js';
@@ -58,7 +58,7 @@ export async function processQueue() {
 async function processBatch(batch, resumeText) {
     for (const job of batch) {
         try {
-            const aiResult = await callGeminiWithRetries(job.description, resumeText);
+            const aiResult = await callGeminiWithRetries(job, resumeText);
 
             if (!aiResult || aiResult.matchPercent === undefined) {
                 console.warn(`Skipping job due to invalid AI result: ${job.title}`);
